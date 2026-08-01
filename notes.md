@@ -27,6 +27,27 @@ just raw material to draw from when writing it properly.
   ALTER USER sentinel WITH PASSWORD 'sentinel_pw'; directly on db,
   then it connected fine.
 
+  - [2026-08-01] backend VM: running `npm install -D prisma` inside
+  /vagrant/backend failed repeatedly with:
+  "EPROTO: protocol error, symlink ... /vagrant/backend/node_modules/.bin/pglite-server"
+  Retried once with the same result, so ruled out a transient glitch.
+  Root cause: VirtualBox's shared folder driver (vboxsf), which is what
+  makes /vagrant visible on both host and guest, does not reliably support
+  symlinks, especially from a Windows host. The prisma CLI package (via a
+  nested dependency, @electric-sql/pglite-socket) needs to create a symlinked
+  binary in node_modules/.bin, and that symlink creation is what fails.
+  Note: express, cors, dotenv, and @prisma/client all installed fine, only
+  packages needing bin symlinks are affected.
+  Fix: installed the prisma CLI globally instead of as a local devDependency
+  (`sudo npm install -g prisma`), since a global npm install lives on the
+  VM's own disk, not the shared folder, so no symlink is created inside
+  /vagrant at all. @prisma/client stays as a normal local dependency since
+  it's just a library, not a CLI tool with bin symlinks.
+  Consequence for reproducibility: this line has to be added to
+  provisioning/backend.sh, not just run manually, otherwise a fresh
+  `vagrant up` from a clean clone won't have the fix and will fail the
+  same way.
+
 ## Data volume estimates (fill in once backend/frontend provisioning exists)
 
 - Clean build downloads: TODO (Ubuntu box size, apt packages, npm packages)
