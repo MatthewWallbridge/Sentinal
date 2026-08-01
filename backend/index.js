@@ -57,6 +57,55 @@ app.get('/api/vulnerabilities', async (req, res) => {
     }
 });
 
+app.post('/api/assets', async (req, res) => {
+  const { name, assetType, owner, location, status } = req.body;
+
+  if (!name || !assetType || !owner) {
+    return res.status(400).json({ error: 'name, assetType, and owner are required' });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO assets (name, asset_type, owner, location, status)
+       VALUES ($1, $2, $3, $4, COALESCE($5, 'Active'))
+       RETURNING *`,
+      [name, assetType, owner, location || null, status || null]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create asset' });
+  }
+});
+
+app.patch('/api/vulnerabilities/:id', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  const allowedStatuses = ['Open', 'Fixed'];
+  if (!status || !allowedStatuses.includes(status)) {
+    return res.status(400).json({ error: `status must be one of: ${allowedStatuses.join(', ')}` });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE vulnerabilities
+       SET status = $1, updated_at = now()
+       WHERE id = $2
+       RETURNING *`,
+      [status, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Vulnerability not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update vulnerability' });
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
