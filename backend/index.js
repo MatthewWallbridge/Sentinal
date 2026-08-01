@@ -33,6 +33,18 @@ app.get('/api/dashboard', async (req, res) => {
   }
 });
 
+app.get('/api/assets', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM assets ORDER BY id');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load assets' });
+  }
+});
+
+
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Sentinel backend listening on port ${PORT}`);
