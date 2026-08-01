@@ -15,3 +15,4 @@ systemctl restart postgresql
 # Create the app database and user (idempotent-ish: ignore error if already exists)
 sudo -u postgres psql -c "CREATE USER sentinel WITH PASSWORD 'sentinel_pw';" || true
 sudo -u postgres psql -c "CREATE DATABASE sentinel_db OWNER sentinel;" || true
+sudo -u postgres psql -c "ALTER USER sentinel CREATEDB;" || true
