@@ -44,6 +44,19 @@ app.get('/api/assets', async (req, res) => {
 });
 
 
+app.get('/api/vulnerabilities', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM vulnerabilities ORDER BY id'
+        );
+
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load vulnerabilities' });
+    }
+});
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
