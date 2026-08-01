@@ -14,9 +14,10 @@ config.vm.define "backend" do |backend|
     backend.vm.provision "shell", path: "provisioning/backend.sh"
   end
 
-  config.vm.define "frontend" do |frontend|
+config.vm.define "frontend" do |frontend|
     frontend.vm.hostname = "frontend"
     frontend.vm.network "private_network", ip: "192.168.56.13"
     frontend.vm.network "forwarded_port", guest: 3000, host: 3000
+    frontend.vm.provision "shell", path: "provisioning/frontend.sh"
   end
 end
