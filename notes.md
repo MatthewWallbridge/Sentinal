@@ -1,4 +1,3 @@
-cat > notes.md << 'EOF'
 # Development Notes
 
 Running log of decisions, problems, and fixes. Not the final report,
@@ -105,6 +104,49 @@ just raw material to draw from when writing it properly.
   log line, two completely different causes (once a real bug, once
   expected behaviour), worth remembering when reading logs.
 
+- [2026-08-19] backend VM: `vagrant up` on a fresh terminal session got
+  through db fine, then failed on backend with "Timed out while waiting
+  for the machine to boot" (default 300s boot_timeout). Confusing because
+  `vagrant global-status` showed the VM as "running" straight after, and
+  the forwarded SSH port (2200) was accepting TCP connections, so the VM
+  wasn't actually dead, something was stopping the SSH handshake itself
+  from completing in time. Root cause, once traced: `.vagrant/` (Vagrant's
+  own per-machine runtime state: VirtualBox VM IDs, the generated SSH
+  private key for each VM, box metadata) had been committed to git the
+  whole time, and there was no `.gitignore` at all in the repo. That
+  directory is meant to be host-specific and regenerated on every machine;
+  committing it meant my own local copy could drift out of sync with what
+  VirtualBox actually had registered (`git status` was independently
+  showing the backend VM's `private_key` file as deleted), which was
+  enough to stall the SSH key exchange past the timeout. This would have
+  been worse on a fresh clone: whoever cloned it would inherit VM IDs and
+  private keys tied to VirtualBox machines that only exist on my computer,
+  not theirs.
+  Fix: `git rm -r --cached .vagrant` to untrack it, added a `.gitignore`
+  with `.vagrant/` in it so it can never be committed again. Also bumped
+  `config.vm.boot_timeout` to 600s in the Vagrantfile (from the 300s
+  default) and pinned each VM to 1024MB/1 CPU via a `virtualbox` provider
+  block, as a safety margin in case a marker's machine is slower than
+  mine. Verified by destroying both VMs, deleting the local `.vagrant/`
+  folder entirely (this exactly reproduces what a fresh `git clone` looks
+  like), then running `vagrant up` from nothing: all three VMs came up
+  cleanly, and even hit a couple of transient "Connection reset. Retrying..."
+  SSH blips along the way without failing, which the old 300s timeout
+  might not have survived either.
+
+- [2026-08-19] frontend VM: `frontend.sh` only ever installed Node.js, it
+  never ran `npm install` for the actual app or started anything on port
+  3000, so `vagrant up` alone left the frontend VM booted but serving
+  nothing, you'd have to SSH in and start it by hand every time. Fixed by
+  extending frontend.sh to run `npm install` in /vagrant/frontend and
+  register a systemd service (sentinel-frontend) running `npm run dev`,
+  matching the pattern already used for the backend. Confirmed with
+  `curl localhost:3000` returning HTTP 200 after a full `vagrant up`, and
+  that editing a file on the host reflects live in the browser without
+  any manual step, thanks to `usePolling: true` already being set in
+  vite.config.js (needed because VirtualBox's shared folder driver
+  doesn't reliably deliver filesystem-change notifications to the guest).
+
 ## Reproducibility checks
 
 - [2026-08-01] Ran a full `vagrant destroy -f` followed by `vagrant up`
@@ -135,5 +177,9 @@ just raw material to draw from when writing it properly.
 - Used Claude to help scaffold the Vagrantfile structure, provisioning
   script syntax, and to talk through several debugging problems (Postgres
   auth failure, the Prisma/vboxsf symlink issue, Prisma 7's config
-  requirement, and the missing .env file). 
-EOF
+  requirement, and the missing .env file).
+
+- [2026-08-19] Used Claude to diagnose the backend boot-timeout issue
+  above: it traced the failure to `.vagrant/` being committed to git,
+  untracked it, added the missing `.gitignore`, adjusted the Vagrantfile
+  timeout/resource settings.
