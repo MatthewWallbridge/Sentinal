@@ -135,8 +135,5 @@ just raw material to draw from when writing it properly.
 - Used Claude to help scaffold the Vagrantfile structure, provisioning
   script syntax, and to talk through several debugging problems (Postgres
   auth failure, the Prisma/vboxsf symlink issue, Prisma 7's config
-  requirement, and the missing .env file). Claude recommended dropping
-  Prisma for plain pg + SQL after the version-specific issues stacked up;
-  I made the final call to do so and wrote/ran/tested every command
-  myself, confirming results before committing.
+  requirement, and the missing .env file). 
 EOF
