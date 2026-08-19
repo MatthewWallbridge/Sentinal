@@ -8,6 +8,13 @@ function App() {
   const [assets, setAssets] = useState([]);
   const [vulnerabilities, setVulnerabilities] = useState([]);
   const [error, setError] = useState(null);
+  const [newAsset, setNewAsset] = useState({
+    name: '',
+    assetType: '',
+    owner: '',
+    location: '',
+    status: 'Active',
+  });
 
   function loadDashboard() {
     fetch(`${API_BASE}/dashboard`)
@@ -51,6 +58,26 @@ function App() {
       .catch((err) => setError(err.message));
   }
 
+  function handleAssetChange(e) {
+    setNewAsset({ ...newAsset, [e.target.name]: e.target.value });
+  }
+
+  function submitAsset(e) {
+    e.preventDefault();
+    fetch(`${API_BASE}/assets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newAsset),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        setNewAsset({ name: '', assetType: '', owner: '', location: '', status: 'Active' });
+        loadAssets();
+        loadDashboard();
+      })
+      .catch((err) => setError(err.message));
+  }
+
   if (error) return <p>Failed to load data: {error}</p>;
   if (!dashboard) return <p>Loading...</p>;
 
@@ -72,6 +99,19 @@ function App() {
           <li key={row.status}>{row.status}: {row.count}</li>
         ))}
       </ul>
+
+      <h2>Add Asset</h2>
+      <form onSubmit={submitAsset} style={{ marginBottom: '1.5rem' }}>
+        <input name="name" placeholder="Name" value={newAsset.name} onChange={handleAssetChange} required />{' '}
+        <input name="assetType" placeholder="Type" value={newAsset.assetType} onChange={handleAssetChange} required />{' '}
+        <input name="owner" placeholder="Owner" value={newAsset.owner} onChange={handleAssetChange} required />{' '}
+        <input name="location" placeholder="Location" value={newAsset.location} onChange={handleAssetChange} />{' '}
+        <select name="status" value={newAsset.status} onChange={handleAssetChange}>
+          <option value="Active">Active</option>
+          <option value="Retired">Retired</option>
+        </select>{' '}
+        <button type="submit">Add Asset</button>
+      </form>
 
       <h2>Assets</h2>
       <table border="1" cellPadding="6">
