@@ -95,6 +95,31 @@ app.delete('/api/assets/:id', async (req, res) => {
   }
 });
 
+app.post('/api/vulnerabilities', async (req, res) => {
+  const { assetId, title, description, severity } = req.body;
+  const allowedSeverities = ['Critical', 'High', 'Medium', 'Low'];
+
+  if (!assetId || !title || !severity) {
+    return res.status(400).json({ error: 'assetId, title, and severity are required' });
+  }
+  if (!allowedSeverities.includes(severity)) {
+    return res.status(400).json({ error: `severity must be one of: ${allowedSeverities.join(', ')}` });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO vulnerabilities (asset_id, title, description, severity, status)
+       VALUES ($1, $2, $3, $4, 'Open')
+       RETURNING *`,
+      [assetId, title, description || null, severity]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create vulnerability' });
+  }
+});
+
 app.patch('/api/vulnerabilities/:id', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;

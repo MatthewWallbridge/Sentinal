@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import './App.css';
+import { useEffect, useState } from "react";
+import "./App.css";
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = "http://localhost:5000/api";
 
 function severityBadgeClass(severity) {
   return `badge badge-${severity.toLowerCase()}`;
@@ -16,14 +16,26 @@ function App() {
   const [assets, setAssets] = useState([]);
   const [vulnerabilities, setVulnerabilities] = useState([]);
   const [error, setError] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState("All");
   const [newAsset, setNewAsset] = useState({
-    name: '',
-    assetType: '',
-    owner: '',
-    location: '',
-    status: 'Active',
+    name: "",
+    assetType: "",
+    owner: "",
+    location: "",
+    status: "Active",
   });
+
+  const [newVuln, setNewVuln] = useState({
+    assetId: "",
+    title: "",
+    description: "",
+    severity: "Medium",
+  });
+
+  function assetName(assetId) {
+    const asset = assets.find((a) => a.id === assetId);
+    return asset ? asset.name : `Asset #${assetId}`;
+  }
 
   function loadDashboard() {
     fetch(`${API_BASE}/dashboard`)
@@ -53,10 +65,10 @@ function App() {
   }, []);
 
   function toggleStatus(vuln) {
-    const newStatus = vuln.status === 'Open' ? 'Fixed' : 'Open';
+    const newStatus = vuln.status === "Open" ? "Fixed" : "Open";
     fetch(`${API_BASE}/vulnerabilities/${vuln.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
     })
       .then((res) => res.json())
@@ -74,14 +86,45 @@ function App() {
   function submitAsset(e) {
     e.preventDefault();
     fetch(`${API_BASE}/assets`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newAsset),
     })
       .then((res) => res.json())
       .then(() => {
-        setNewAsset({ name: '', assetType: '', owner: '', location: '', status: 'Active' });
+        setNewAsset({
+          name: "",
+          assetType: "",
+          owner: "",
+          location: "",
+          status: "Active",
+        });
         loadAssets();
+        loadDashboard();
+      })
+      .catch((err) => setError(err.message));
+  }
+
+  function handleVulnChange(e) {
+    setNewVuln({ ...newVuln, [e.target.name]: e.target.value });
+  }
+
+  function submitVulnerability(e) {
+    e.preventDefault();
+    fetch(`${API_BASE}/vulnerabilities`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newVuln),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        setNewVuln({
+          assetId: "",
+          title: "",
+          description: "",
+          severity: "Medium",
+        });
+        loadVulnerabilities();
         loadDashboard();
       })
       .catch((err) => setError(err.message));
@@ -89,11 +132,11 @@ function App() {
 
   function deleteAsset(asset) {
     const confirmed = window.confirm(
-      `Delete "${asset.name}"? This will also delete any vulnerabilities recorded against it.`
+      `Delete "${asset.name}"? This will also delete any vulnerabilities recorded against it.`,
     );
     if (!confirmed) return;
 
-    fetch(`${API_BASE}/assets/${asset.id}`, { method: 'DELETE' })
+    fetch(`${API_BASE}/assets/${asset.id}`, { method: "DELETE" })
       .then((res) => res.json())
       .then(() => {
         loadAssets();
@@ -107,22 +150,32 @@ function App() {
   if (!dashboard) return <p>Loading...</p>;
 
   const filteredAssets = assets.filter(
-    (asset) => statusFilter === 'All' || asset.status === statusFilter
+    (asset) => statusFilter === "All" || asset.status === statusFilter,
   );
 
   return (
     <div className="app">
-      <h1>Sentinel Dashboard</h1>
-      <p className="subtitle">Cyber asset & vulnerability tracker</p>
+      <div className="app-header">
+        <h1>Sentinel Dashboard</h1>
+        <p className="subtitle">Cyber asset & vulnerability tracker</p>
+      </div>
 
       <section className="card">
         <h2>Overview</h2>
-        <p>Total assets: <strong>{dashboard.totalAssets}</strong></p>
+        <p className="stat-total">
+          {dashboard.totalAssets}{" "}
+          <span style={{ fontSize: "1rem", color: "#64748b", fontWeight: 500 }}>
+            total assets
+          </span>
+        </p>
         <div className="stat-group">
           <div>
             <h3>By severity</h3>
             {dashboard.vulnerabilitiesBySeverity.map((row) => (
-              <span key={row.severity} className={severityBadgeClass(row.severity)}>
+              <span
+                key={row.severity}
+                className={severityBadgeClass(row.severity)}
+              >
                 {row.severity}: {row.count}
               </span>
             ))}
@@ -141,11 +194,38 @@ function App() {
       <section className="card">
         <h2>Add Asset</h2>
         <form onSubmit={submitAsset} className="asset-form">
-          <input name="name" placeholder="Name" value={newAsset.name} onChange={handleAssetChange} required />
-          <input name="assetType" placeholder="Type" value={newAsset.assetType} onChange={handleAssetChange} required />
-          <input name="owner" placeholder="Owner" value={newAsset.owner} onChange={handleAssetChange} required />
-          <input name="location" placeholder="Location" value={newAsset.location} onChange={handleAssetChange} />
-          <select name="status" value={newAsset.status} onChange={handleAssetChange}>
+          <input
+            name="name"
+            placeholder="Name"
+            value={newAsset.name}
+            onChange={handleAssetChange}
+            required
+          />
+          <input
+            name="assetType"
+            placeholder="Type"
+            value={newAsset.assetType}
+            onChange={handleAssetChange}
+            required
+          />
+          <input
+            name="owner"
+            placeholder="Owner"
+            value={newAsset.owner}
+            onChange={handleAssetChange}
+            required
+          />
+          <input
+            name="location"
+            placeholder="Location"
+            value={newAsset.location}
+            onChange={handleAssetChange}
+          />
+          <select
+            name="status"
+            value={newAsset.status}
+            onChange={handleAssetChange}
+          >
             <option value="Active">Active</option>
             <option value="Retired">Retired</option>
           </select>
@@ -157,8 +237,11 @@ function App() {
         <div className="section-header">
           <h2>Assets</h2>
           <label>
-            Filter by status:{' '}
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            Filter by status:{" "}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
               <option value="All">All</option>
               <option value="Active">Active</option>
               <option value="Retired">Retired</option>
@@ -183,9 +266,16 @@ function App() {
                 <td>{asset.asset_type}</td>
                 <td>{asset.owner}</td>
                 <td>{asset.location}</td>
-                <td><span className={statusBadgeClass(asset.status)}>{asset.status}</span></td>
                 <td>
-                  <button className="delete-btn" onClick={() => deleteAsset(asset)}>
+                  <span className={statusBadgeClass(asset.status)}>
+                    {asset.status}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    className="delete-btn"
+                    onClick={() => deleteAsset(asset)}
+                  >
                     Delete
                   </button>
                 </td>
@@ -198,10 +288,53 @@ function App() {
 
       <section className="card">
         <h2>Vulnerabilities</h2>
+        <form
+          onSubmit={submitVulnerability}
+          className="asset-form"
+          style={{ marginBottom: "1rem" }}
+        >
+          <select
+            name="assetId"
+            value={newVuln.assetId}
+            onChange={handleVulnChange}
+            required
+          >
+            <option value="">Select asset...</option>
+            {assets.map((asset) => (
+              <option key={asset.id} value={asset.id}>
+                {asset.name}
+              </option>
+            ))}
+          </select>
+          <input
+            name="title"
+            placeholder="Vulnerability title"
+            value={newVuln.title}
+            onChange={handleVulnChange}
+            required
+          />
+          <input
+            name="description"
+            placeholder="Description (optional)"
+            value={newVuln.description}
+            onChange={handleVulnChange}
+          />
+          <select
+            name="severity"
+            value={newVuln.severity}
+            onChange={handleVulnChange}
+          >
+            <option value="Critical">Critical</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+          <button type="submit">Add Vulnerability</button>
+        </form>
         <table>
           <thead>
             <tr>
-              <th>Asset ID</th>
+              <th>Asset</th>
               <th>Title</th>
               <th>Severity</th>
               <th>Status</th>
@@ -211,13 +344,21 @@ function App() {
           <tbody>
             {vulnerabilities.map((vuln) => (
               <tr key={vuln.id}>
-                <td>{vuln.asset_id}</td>
+                <td>{assetName(vuln.asset_id)}</td>
                 <td>{vuln.title}</td>
-                <td><span className={severityBadgeClass(vuln.severity)}>{vuln.severity}</span></td>
-                <td><span className={statusBadgeClass(vuln.status)}>{vuln.status}</span></td>
+                <td>
+                  <span className={severityBadgeClass(vuln.severity)}>
+                    {vuln.severity}
+                  </span>
+                </td>
+                <td>
+                  <span className={statusBadgeClass(vuln.status)}>
+                    {vuln.status}
+                  </span>
+                </td>
                 <td>
                   <button onClick={() => toggleStatus(vuln)}>
-                    Mark as {vuln.status === 'Open' ? 'Fixed' : 'Open'}
+                    Mark as {vuln.status === "Open" ? "Fixed" : "Open"}
                   </button>
                 </td>
               </tr>
