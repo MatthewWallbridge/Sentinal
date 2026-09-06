@@ -94,12 +94,4 @@ frontend/
 src/App.jsx # React UI
 package.json
 verify.sh # Automated deployment check
-notes.md # Development log: decisions, debugging, reproducibility checks
-
-
-
-## Tool choices
-
-Prisma ORM was originally used for the backend but was dropped in favour of the plain `pg` library and hand-written SQL after repeated environment-specific failures (VirtualBox's shared folder driver does not reliably support the symlinks some npm packages need, and Prisma 7 introduced a config requirement incompatible with that constraint). See `notes.md` for the full debugging history.
-
-See `notes.md` for a complete log of development decisions, problems encountered, and how they were resolved.
+notes.md # Development log: decisions, debugging, reproducibility checks.
