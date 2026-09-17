@@ -37,11 +37,11 @@ resource "aws_security_group" "backend" {
   description = "Sentinel backend API - only frontend can reach it, plus ssh"
 
   ingress {
-    description     = "Backend API from frontend only"
-    from_port       = 5000
-    to_port         = 5000
-    protocol        = "tcp"
-    security_groups = [aws_security_group.frontend.id]
+    description = "Backend API from anywhere (browser calls it directly)"
+    from_port   = 5000
+    to_port     = 5000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
@@ -135,4 +135,19 @@ output "backend_public_ip" {
 
 output "backend_public_dns" {
   value = aws_instance.backend.public_dns
+}
+
+resource "aws_instance" "frontend" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t3.micro"
+  key_name               = "vockey"
+  vpc_security_group_ids = [aws_security_group.frontend.id]
+
+  tags = {
+    Name = "sentinel-frontend"
+  }
+}
+
+output "frontend_public_ip" {
+  value = aws_instance.frontend.public_ip
 }
