@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
 
 const app = express();
 app.use(cors());
@@ -12,6 +13,11 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
+
+// No explicit credentials: running on EC2 with the LabInstanceProfile
+// attached, the SDK picks up temporary credentials from the instance
+// metadata service automatically.
+const sns = new SNSClient({ region: 'us-east-1' });
 
 
 app.get('/api/health', (req, res) => {
@@ -118,7 +124,24 @@ app.post('/api/vulnerabilities', async (req, res) => {
        RETURNING *`,
       [assetId, title, description || null, severity]
     );
-    res.status(201).json(result.rows[0]);
+    const vulnerability = result.rows[0];
+    res.status(201).json(vulnerability);
+
+    // Notify subscribers of new Critical-severity vulnerabilities. Best
+    // effort: the row is already saved and the response already sent, so a
+    // failure here shouldn't fail the request - the DB write is the source
+    // of truth, this is just an alert on top of it.
+    if (severity === 'Critical' && process.env.SNS_TOPIC_ARN) {
+      try {
+        await sns.send(new PublishCommand({
+          TopicArn: process.env.SNS_TOPIC_ARN,
+          Subject: 'Sentinel: new Critical vulnerability',
+          Message: `A new Critical vulnerability was added.\n\nTitle: ${vulnerability.title}\nAsset ID: ${vulnerability.asset_id}\nDescription: ${vulnerability.description || '(none)'}`,
+        }));
+      } catch (snsErr) {
+        console.error('Failed to publish SNS notification:', snsErr);
+      }
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to create vulnerability' });
