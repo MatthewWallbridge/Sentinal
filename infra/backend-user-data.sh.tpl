@@ -16,6 +16,13 @@ ENVEOF
 
 npm install
 
+# systemd runs the app as the non-root "ubuntu" user below, but git clone and
+# npm install above both ran as root. Not currently required for the backend
+# (Express never writes into its own directory at runtime), but kept
+# consistent with the frontend script, which does need this - and doing it
+# after npm install (not before) so node_modules/ is covered too.
+chown -R ubuntu:ubuntu /home/ubuntu/app
+
 PGPASSWORD=${db_password} psql -h ${rds_host} -U sentinel -d sentinel_db -f sql/schema.sql
 
 ASSET_COUNT=$(PGPASSWORD=${db_password} psql -h ${rds_host} -U sentinel -d sentinel_db -t -c "SELECT count(*) FROM assets;" | tr -d '[:space:]')

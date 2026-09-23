@@ -117,6 +117,7 @@ resource "aws_instance" "backend" {
   instance_type          = "t3.micro"
   key_name               = "vockey"
   vpc_security_group_ids = [aws_security_group.backend.id]
+  user_data_replace_on_change = true
 
   user_data = templatefile("${path.module}/backend-user-data.sh.tpl", {
     db_password  = var.db_password
@@ -142,6 +143,11 @@ resource "aws_instance" "frontend" {
   instance_type          = "t3.micro"
   key_name               = "vockey"
   vpc_security_group_ids = [aws_security_group.frontend.id]
+  user_data_replace_on_change = true
+
+  user_data = templatefile("${path.module}/frontend-user-data.sh.tpl", {
+    backend_ip = aws_instance.backend.public_ip
+  })
 
   tags = {
     Name = "sentinel-frontend"

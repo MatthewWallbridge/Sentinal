@@ -2,3 +2,4 @@
 infra/.terraform/
 infra/*.tfstate*
 infra/terraform.tfvars
+notes-a2.md
