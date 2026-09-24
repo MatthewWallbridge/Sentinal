@@ -1,0 +1,5 @@
+# Copy this file to terraform.tfvars and fill in real values.
+# terraform.tfvars is gitignored - never commit real secrets.
+
+db_password = "choose-a-password-here"
+alert_email = "you@example.com"
