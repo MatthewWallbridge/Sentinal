@@ -112,22 +112,47 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+# AWS Academy Learner Lab blocks creating IAM roles/instance profiles, so we
+# reuse the one it already provides rather than create a new one.
+data "aws_iam_instance_profile" "lab" {
+  name = "LabInstanceProfile"
+}
+
+# The "further managed service" for this app: publishing here is triggered
+# by real application logic (creating a Critical-severity vulnerability),
+# not just a resource sitting unused.
+resource "aws_sns_topic" "alerts" {
+  name = "sentinel-alerts"
+}
+
+resource "aws_sns_topic_subscription" "alerts_email" {
+  topic_arn = aws_sns_topic.alerts.arn
+  protocol  = "email"
+  endpoint  = var.alert_email
+}
+
 resource "aws_instance" "backend" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = "t3.micro"
-  key_name               = "vockey"
-  vpc_security_group_ids = [aws_security_group.backend.id]
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t3.micro"
+  key_name                    = "vockey"
+  vpc_security_group_ids      = [aws_security_group.backend.id]
+  iam_instance_profile        = data.aws_iam_instance_profile.lab.name
   user_data_replace_on_change = true
 
   user_data = templatefile("${path.module}/backend-user-data.sh.tpl", {
-    db_password  = var.db_password
-    rds_endpoint = aws_db_instance.sentinel.endpoint
-    rds_host     = aws_db_instance.sentinel.address
+    db_password   = var.db_password
+    rds_endpoint  = aws_db_instance.sentinel.endpoint
+    rds_host      = aws_db_instance.sentinel.address
+    sns_topic_arn = aws_sns_topic.alerts.arn
   })
 
   tags = {
     Name = "sentinel-backend"
   }
+}
+
+output "sns_topic_arn" {
+  value = aws_sns_topic.alerts.arn
 }
 
 output "backend_public_ip" {

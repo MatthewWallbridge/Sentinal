@@ -12,6 +12,7 @@ cd app/backend
 cat > .env << ENVEOF
 DATABASE_URL=postgresql://sentinel:${db_password}@${rds_endpoint}/sentinel_db
 PORT=5000
+SNS_TOPIC_ARN=${sns_topic_arn}
 ENVEOF
 
 npm install

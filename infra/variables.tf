@@ -3,3 +3,8 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "alert_email" {
+  description = "Email address subscribed to Critical-vulnerability SNS alerts"
+  type        = string
+}
