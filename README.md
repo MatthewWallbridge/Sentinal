@@ -158,14 +158,6 @@ Terraform passes the database details to the backend during startup, and the bac
 
 There are no AWS access keys stored in the project.
 
-The backend uses the AWS Academy `LabInstanceProfile` attached to the EC2 instance, which allows the AWS SDK to get temporary credentials automatically when it needs to publish a message to SNS.
-
-One limitation of this setup is that Terraform also stores some sensitive values in its state file.
-
-The Terraform state file is also ignored by Git and is not committed.
-
-For this assignment this was a reasonable setup, but in a real production application I would use a dedicated secret storage service such as AWS Secrets Manager or Parameter Store instead.
-
 # Removing the deployment
 
 To remove all of the AWS resources, run:
